@@ -1,0 +1,394 @@
+"""Simplified Web UI for ZLSDE Pipeline using Gradio."""
+
+import gradio as gr
+import pandas as pd
+import json
+import os
+import tempfile
+from pathlib import Path
+import logging
+
+from zlsde.orchestrator import PipelineOrchestrator
+from zlsde.models.data_models import PipelineConfig, DataSource, ProviderConfig
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def run_pipeline(
+    input_file,
+    modality,
+    embedding_model,
+    clustering_method,
+    min_cluster_size,
+    use_llm,
+    provider_type,
+    llm_model,
+    api_providers,
+    api_timeout,
+    max_iterations,
+    output_format,
+    device,
+    random_seed
+):
+    """Run ZLSDE pipeline with user-provided parameters."""
+    
+    try:
+        # Validate input file
+        if input_file is None:
+            return "❌ Error: Please upload a data file", None, None, None
+        
+        # Create temporary output directory
+        output_dir = tempfile.mkdtemp(prefix="zlsde_output_")
+        
+        # Determine file type
+        file_path = input_file
+        file_ext = Path(file_path).suffix.lower()
+        
+        if file_ext == '.csv':
+            source_type = 'csv'
+        elif file_ext == '.json':
+            source_type = 'json'
+        elif file_ext == '.txt':
+            source_type = 'text'
+        else:
+            return f"❌ Error: Unsupported file type: {file_ext}", None, None, None
+        
+        # Create provider configuration
+        if provider_type == "API Services":
+            provider_config = ProviderConfig(
+                provider_type="api",
+                api_providers=api_providers if api_providers else ["groq", "mistral", "openrouter"],
+                timeout=int(api_timeout)
+            )
+        else:
+            provider_config = ProviderConfig(
+                provider_type="local",
+                local_model=llm_model
+            )
+        
+        # Create configuration
+        config = PipelineConfig(
+            data_sources=[DataSource(type=source_type, path=file_path)],
+            modality=modality,
+            embedding_model=embedding_model,
+            clustering_method=clustering_method,
+            min_cluster_size=int(min_cluster_size),
+            provider_config=provider_config,
+            use_llm=use_llm,
+            max_iterations=int(max_iterations),
+            output_format=output_format,
+            output_path=output_dir,
+            device=device,
+            random_seed=int(random_seed),
+            log_level="INFO"
+        )
+        
+        # Create and run pipeline
+        orchestrator = PipelineOrchestrator(config)
+        
+        result = orchestrator.run()
+        
+        if result.status != "completed":
+            return f"❌ Pipeline failed: {result.error_message}", None, None, None
+        
+        # Load results
+        dataset_path = result.dataset_path
+        metadata_path = os.path.join(output_dir, "metadata.json")
+        
+        # Read dataset
+        if output_format == "csv":
+            df = pd.read_csv(dataset_path)
+        elif output_format == "json":
+            df = pd.read_json(dataset_path)
+        elif output_format == "parquet":
+            df = pd.read_parquet(dataset_path)
+        
+        # Read metadata
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
+        # Create summary
+        summary = f"""
+✅ **Pipeline Completed Successfully!**
+
+📊 **Results Summary:**
+- Total Samples: {result.n_samples}
+- Labeled Samples: {result.n_labeled}
+- Number of Clusters: {result.final_metrics.n_clusters}
+- Silhouette Score: {result.final_metrics.silhouette_score:.3f}
+- Quality Mean: {result.final_metrics.quality_mean:.3f}
+- Execution Time: {result.execution_time_seconds:.2f} seconds
+
+📈 **Iteration History:**
+"""
+        for i, metrics in enumerate(result.iteration_history):
+            summary += f"\n- Iteration {i+1}: {metrics.n_clusters} clusters, silhouette={metrics.silhouette_score:.3f}, flip_rate={metrics.label_flip_rate:.1%}"
+        
+        summary += f"""
+
+📁 **Output Files:**
+- Dataset: {dataset_path}
+- Metadata: {metadata_path}
+"""
+        
+        # Create metadata display
+        metadata_display = json.dumps(metadata, indent=2)
+        
+        return summary, df, metadata_display, dataset_path
+        
+    except Exception as e:
+        logger.error(f"Pipeline error: {e}", exc_info=True)
+        return f"❌ Error: {str(e)}", None, None, None
+
+
+# Create Gradio interface
+with gr.Blocks(title="ZLSDE - Zero-Label Dataset Engine") as app:
+    
+    gr.Markdown("""
+    # 🚀 ZLSDE - Zero-Label Self-Discovering Dataset Engine
+    
+    Transform raw unlabeled data into structured, labeled datasets **without human annotation**!
+    
+    Upload your data, configure the pipeline, and let AI do the labeling for you.
+    """)
+    
+    with gr.Row():
+        with gr.Column(scale=1):
+            gr.Markdown("## 📤 Input Configuration")
+            
+            # File upload
+            input_file = gr.File(
+                label="Upload Data File",
+                file_types=[".csv", ".json", ".txt"]
+            )
+            
+            gr.Markdown("**Supported formats:** CSV (with 'content' column), JSON, TXT")
+            
+            # Basic settings
+            with gr.Accordion("⚙️ Basic Settings", open=True):
+                modality = gr.Dropdown(
+                    choices=["text", "image", "multimodal"],
+                    value="text",
+                    label="Data Modality"
+                )
+                
+                output_format = gr.Dropdown(
+                    choices=["csv", "json", "parquet"],
+                    value="csv",
+                    label="Output Format"
+                )
+                
+                device = gr.Dropdown(
+                    choices=["cpu", "cuda"],
+                    value="cpu",
+                    label="Device"
+                )
+            
+            # Embedding settings
+            with gr.Accordion("🧠 Embedding Settings", open=False):
+                embedding_model = gr.Dropdown(
+                    choices=[
+                        "sentence-transformers/all-MiniLM-L6-v2",
+                        "sentence-transformers/all-mpnet-base-v2",
+                        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+                    ],
+                    value="sentence-transformers/all-MiniLM-L6-v2",
+                    label="Embedding Model"
+                )
+            
+            # Clustering settings
+            with gr.Accordion("🔍 Clustering Settings", open=False):
+                clustering_method = gr.Dropdown(
+                    choices=["auto", "kmeans", "spectral"],
+                    value="auto",
+                    label="Clustering Method"
+                )
+                
+                min_cluster_size = gr.Slider(
+                    minimum=2,
+                    maximum=50,
+                    value=5,
+                    step=1,
+                    label="Minimum Cluster Size"
+                )
+            
+            # Label generation settings
+            with gr.Accordion("🏷️ Label Generation Settings", open=False):
+                use_llm = gr.Checkbox(
+                    value=True,
+                    label="Use LLM for Label Generation"
+                )
+                
+                provider_type = gr.Radio(
+                    choices=["Local Models", "API Services"],
+                    value="API Services",
+                    label="LLM Provider Type",
+                    info="Choose between local models or cloud API services"
+                )
+                
+                with gr.Group() as local_config:
+                    llm_model = gr.Dropdown(
+                        choices=[
+                            "google/flan-t5-base",
+                            "google/flan-t5-small",
+                            "google/flan-t5-large"
+                        ],
+                        value="google/flan-t5-base",
+                        label="Local Model"
+                    )
+                
+                with gr.Group() as api_config:
+                    gr.Markdown("""
+**API Configuration:**  
+API keys are loaded from `.env` file in the project root:
+```
+GROQ_API_KEY=your_key_here
+MISTRAL_API_KEY=your_key_here
+OPENROUTER_API_KEY=your_key_here
+```
+                    """)
+                    
+                    api_providers = gr.CheckboxGroup(
+                        choices=["groq", "mistral", "openrouter"],
+                        value=["groq", "mistral", "openrouter"],
+                        label="Enabled API Providers",
+                        info="Providers will be tried in this order"
+                    )
+                    
+                    api_timeout = gr.Slider(
+                        minimum=10,
+                        maximum=120,
+                        value=30,
+                        step=5,
+                        label="API Timeout (seconds)"
+                    )
+                
+                # Toggle visibility based on provider type
+                def toggle_provider_config(provider_type):
+                    if provider_type == "Local Models":
+                        return gr.update(visible=True), gr.update(visible=False)
+                    else:
+                        return gr.update(visible=False), gr.update(visible=True)
+                
+                provider_type.change(
+                    fn=toggle_provider_config,
+                    inputs=[provider_type],
+                    outputs=[local_config, api_config]
+                )
+                
+                # Set initial visibility
+                local_config.visible = False
+                api_config.visible = True
+            
+            # Training settings
+            with gr.Accordion("🔄 Training Settings", open=False):
+                max_iterations = gr.Slider(
+                    minimum=1,
+                    maximum=5,
+                    value=3,
+                    step=1,
+                    label="Max Iterations"
+                )
+                
+                random_seed = gr.Number(
+                    value=42,
+                    label="Random Seed"
+                )
+            
+            # Run button
+            run_btn = gr.Button("🚀 Run Pipeline", variant="primary", size="lg")
+        
+        with gr.Column(scale=2):
+            gr.Markdown("## 📊 Results")
+            
+            # Results display
+            summary_output = gr.Markdown(label="Summary")
+            
+            with gr.Tabs():
+                with gr.Tab("📋 Labeled Dataset"):
+                    dataset_output = gr.Dataframe(
+                        label="Labeled Data",
+                        interactive=False,
+                        wrap=True
+                    )
+                
+                with gr.Tab("📈 Metadata"):
+                    metadata_output = gr.Code(
+                        label="Pipeline Metadata",
+                        language="json"
+                    )
+                
+                with gr.Tab("💾 Download"):
+                    download_output = gr.File(label="Download Dataset")
+    
+    # Connect button to function
+    run_btn.click(
+        fn=run_pipeline,
+        inputs=[
+            input_file,
+            modality,
+            embedding_model,
+            clustering_method,
+            min_cluster_size,
+            use_llm,
+            provider_type,
+            llm_model,
+            api_providers,
+            api_timeout,
+            max_iterations,
+            output_format,
+            device,
+            random_seed
+        ],
+        outputs=[
+            summary_output,
+            dataset_output,
+            metadata_output,
+            download_output
+        ]
+    )
+    
+    gr.Markdown("""
+    ---
+    ## 📚 Example Datasets
+    
+    Try `examples/data/sample_text.csv` - 20 technology-related text samples
+    
+    ## 🎯 How It Works
+    
+    1. **Upload** your unlabeled data (CSV, JSON, or TXT)
+    2. **Configure** the pipeline settings (or use defaults)
+    3. **Run** the pipeline and wait for results
+    4. **Download** your labeled dataset with quality scores
+    """)
+
+
+def main():
+    """Launch the Gradio UI."""
+    # Disable API info to avoid type parsing issues
+    import os
+    os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
+    
+    try:
+        app.launch(
+            server_name="0.0.0.0",  # Allow external access
+            server_port=7860,
+            share=False,
+            show_error=True,
+            inbrowser=True
+        )
+    except Exception as e:
+        logger.error(f"Failed to launch UI: {e}")
+        # Try with share=True as fallback
+        logger.info("Retrying with share=True...")
+        app.launch(
+            share=True,
+            show_error=True,
+            inbrowser=True
+        )
+
+
+if __name__ == "__main__":
+    main()

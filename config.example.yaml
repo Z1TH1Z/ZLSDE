@@ -1,0 +1,42 @@
+# Example ZLSDE Pipeline Configuration
+
+data:
+  sources:
+    - type: csv
+      path: data/unlabeled_text.csv
+  modality: text
+
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  device: cpu
+  batch_size: 32
+  use_dimensionality_reduction: false
+  n_components: 50
+
+clustering:
+  method: auto  # auto, hdbscan, kmeans, spectral
+  min_cluster_size: 10
+
+labeling:
+  llm_model: google/flan-t5-base
+  use_llm: true
+  n_representatives: 5
+
+quality:
+  threshold: 0.7
+  anomaly_contamination: 0.1
+  duplicate_threshold: 0.95
+
+training:
+  max_iterations: 3
+  convergence_threshold: 0.02  # 2% flip rate
+  confidence_threshold: 0.8
+
+output:
+  format: csv  # csv, json, parquet, huggingface
+  path: ./output/dataset
+  include_embeddings: true
+
+system:
+  random_seed: 42
+  log_level: INFO
