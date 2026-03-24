@@ -1,0 +1,75 @@
+# ZLSDE Pipeline Configuration - API Provider Example
+# This configuration uses cloud-based LLM APIs instead of local models
+
+# IMPORTANT: Set your API keys in a .env file before running:
+# GROQ_API_KEY=your_key_here
+# MISTRAL_API_KEY=your_key_here
+# OPENROUTER_API_KEY=your_key_here
+
+# Data sources
+data:
+  sources:
+    - type: csv
+      path: examples/data/sample_text.csv
+  modality: text
+
+# Embedding configuration
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  device: cpu
+  batch_size: 32
+  use_dimensionality_reduction: false
+  n_components: 50
+
+# Clustering configuration
+clustering:
+  method: auto
+  min_cluster_size: 10
+
+# Label generation with API providers
+labeling:
+  provider_config:
+    # Use API services with automatic fallback
+    provider_type: api
+    
+    # API providers will be tried in this order
+    # If all fail, falls back to local model
+    api_providers:
+      - groq        # Fast inference with Mixtral
+      - mistral     # Mistral AI's official API
+      - openrouter  # Access to multiple models
+    
+    # Model configurations
+    groq_model: mixtral-8x7b-32768
+    mistral_model: mistral-small-latest
+    openrouter_model: mistralai/mixtral-8x7b-instruct
+    local_model: google/flan-t5-base  # Fallback if all APIs fail
+    
+    # API timeout in seconds
+    timeout: 30
+  
+  use_llm: true
+  n_representatives: 5
+
+# Quality control
+quality:
+  threshold: 0.7
+  anomaly_contamination: 0.1
+  duplicate_threshold: 0.95
+
+# Self-training
+training:
+  max_iterations: 3
+  convergence_threshold: 0.02
+  confidence_threshold: 0.8
+
+# Output
+output:
+  format: csv
+  path: ./output/dataset_api
+  include_embeddings: true
+
+# System
+system:
+  random_seed: 42
+  log_level: INFO
