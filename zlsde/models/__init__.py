@@ -1,6 +1,6 @@
 """ZLSDE data models submodule."""
 
-from zlsde.models.data_models import (
+from .data_models import (
     DataSource, ProviderConfig, PipelineConfig,
     PipelineResult, IterationMetrics, LabeledDataItem, RawDataItem, Label,
     ClusterResult, QualityScore

@@ -7,7 +7,7 @@ into structured, high-quality labeled datasets without human annotation.
 
 __version__ = "0.1.0"
 
-from zlsde.models.data_models import PipelineConfig, DataSource
-from zlsde.orchestrator import PipelineOrchestrator
+from .models.data_models import PipelineConfig, DataSource
+from .orchestrator import PipelineOrchestrator
 
 __all__ = ["PipelineConfig", "DataSource", "PipelineOrchestrator", "__version__"]

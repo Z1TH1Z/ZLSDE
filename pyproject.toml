@@ -61,6 +61,10 @@ optional = [
 [project.scripts]
 zlsde = "zlsde.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["zlsde*"]
+exclude = ["tests*"]
+
 [tool.black]
 line-length = 100
 target-version = ['py310']

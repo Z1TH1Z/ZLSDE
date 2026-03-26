@@ -60,7 +60,7 @@ output/
 *.h5
 
 # Models (large files)
-models/
+/models/
 *.bin
 *.pt
 *.pth
