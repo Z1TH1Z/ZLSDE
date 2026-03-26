@@ -1,6 +1,6 @@
 # ZLSDE - Zero-Label Self-Discovering Dataset Engine
 
-![Coverage](https://img.shields.io/badge/coverage-87%25-green)
+[![CI Pipeline](https://github.com/Z1TH1Z/ZLSDE/actions/workflows/ci.yml/badge.svg)](https://github.com/Z1TH1Z/ZLSDE/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/Z1TH1Z/ZLSDE/graph/badge.svg)](https://codecov.io/gh/Z1TH1Z/ZLSDE)
 
 **An autonomous end-to-end machine learning pipeline that transforms raw unlabeled data into structured, high-quality labeled datasets without human annotation.**
@@ -18,6 +18,8 @@ ZLSDE (Zero-Label Self-Discovering Dataset Engine) is a production-ready ML syst
 - **Multi-Provider LLM Integration**: Seamless integration with Groq, Mistral AI, and OpenRouter APIs
 - **Automatic Fallback Chain**: 100% reliability through intelligent provider failover
 - **Production-Ready Architecture**: Modular 7-layer design with comprehensive error handling
+- **Type-Safe Configuration**: Pydantic-based data models with built-in validation
+- **CI/CD Pipeline**: Automated testing and coverage reporting via GitHub Actions
 - **Web-Based Interface**: Interactive UI for configuration and real-time results visualization
 - **Scalable Performance**: Handles datasets up to 1M samples on standard hardware
 
@@ -107,11 +109,14 @@ Label Generation → Quality Control → Self-Training → Dataset Export
 git clone https://github.com/Z1TH1Z/ZLSDE.git
 cd ZLSDE
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install in development mode
+# Install the package with core dependencies
 pip install -e .
+
+# Or install with development dependencies (testing, linting, type-checking)
+pip install -e ".[dev]"
+
+# Or install with optional dependencies (FAISS, Datasets, Pillow)
+pip install -e ".[optional]"
 ```
 
 ### API Configuration
@@ -330,9 +335,9 @@ zlsde/
 │   ├── fallback_chain.py    # Fallback management
 │   └── exceptions.py        # Provider exceptions
 │
-├── models/                  # Data models
+├── models/                  # Pydantic data models
 │   ├── __init__.py
-│   └── data_models.py       # Configuration and result models
+│   └── data_models.py       # Type-safe configuration and result models
 │
 └── utils/                   # Utilities
     ├── __init__.py
@@ -344,11 +349,24 @@ zlsde/
 
 ---
 
-## Testing
+## Testing & CI/CD
+
+### Continuous Integration
+
+The project uses GitHub Actions for automated CI:
+
+- **Linting**: flake8 checks for syntax errors and code quality
+- **Testing**: pytest with coverage reporting
+- **Coverage**: Automatic upload to Codecov
+
+CI runs on every push and pull request to `main`.
 
 ### Run Test Suite
 
 ```bash
+# Install dev dependencies first
+pip install -e ".[dev]"
+
 # Run all tests
 pytest tests/
 
@@ -359,15 +377,14 @@ pytest tests/unit/
 pytest tests/integration/
 
 # Run with coverage
-pytest --cov=zlsde tests/
+pytest --cov=zlsde --cov-report=xml tests/
 ```
 
 ### Test Coverage
 
-- **Unit Tests**: Provider implementations, utilities, data models
-- **Integration Tests**: End-to-end pipeline execution, API integration
+- **Unit Tests**: Provider implementations, fallback chains, data models
+- **Integration Tests**: Label generator integration, API provider workflows
 - **Property Tests**: Configuration validation, data transformations
-- **Performance Tests**: Throughput benchmarking, latency measurement
 
 ---
 
@@ -376,11 +393,8 @@ pytest --cov=zlsde tests/
 ### Setup Development Environment
 
 ```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Install pre-commit hooks
-pre-commit install
+# Install with development dependencies
+pip install -e ".[dev]"
 
 # Run code formatting
 black zlsde/ tests/
@@ -413,16 +427,24 @@ Contributions are welcome. Please follow these guidelines:
 - **Sentence-Transformers**: Semantic embeddings
 - **Scikit-learn**: Clustering and metrics
 
+### Data Models & Validation
+- **Pydantic**: Type-safe data models and configuration validation
+
 ### Web & APIs
 - **Gradio**: Interactive web interface
-- **FastAPI**: REST API framework
 - **Requests**: HTTP client library
 - **Python-dotenv**: Environment management
 
 ### Data Processing
 - **Pandas**: Data manipulation
 - **NumPy**: Numerical computing
+- **PyArrow**: Parquet format support
 - **PyYAML**: Configuration parsing
+
+### Development & CI
+- **pytest**: Test framework with coverage
+- **GitHub Actions**: Continuous integration
+- **flake8 / black / mypy**: Code quality tools
 
 ---
 
@@ -479,11 +501,13 @@ config = PipelineConfig(
 
 ## Roadmap
 
-### Current Version (1.0.0)
-- Multi-provider LLM integration
-- Automatic fallback chain
-- Web-based interface
-- Comprehensive testing suite
+### Current Version (0.1.0)
+- Multi-provider LLM integration with automatic fallback
+- Pydantic-based type-safe data models and configuration
+- Modern Python packaging via `pyproject.toml`
+- CI/CD pipeline with GitHub Actions and Codecov
+- Web-based Gradio interface
+- Comprehensive test suite (unit, integration, property)
 
 ### Planned Features
 - Batch API request optimization
@@ -506,10 +530,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 If you use ZLSDE in your research or project, please cite:
 
 ```bibtex
-@software{zlsde2024,
+@software{zlsde2026,
   title={ZLSDE: Zero-Label Self-Discovering Dataset Engine},
   author={Z1TH1Z},
-  year={2024},
+  year={2026},
   url={https://github.com/Z1TH1Z/ZLSDE}
 }
 ```
