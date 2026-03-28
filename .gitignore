@@ -25,6 +25,7 @@ venv/
 env/
 ENV/
 .venv
+.venv_backup_*/
 
 # IDE
 .vscode/
@@ -40,6 +41,8 @@ ENV/
 htmlcov/
 .tox/
 .hypothesis/
+check_labels.py
+test_label_fix.py
 
 # Type checking
 .mypy_cache/
