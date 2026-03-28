@@ -1,6 +1,7 @@
 """API provider implementations for cloud-based LLM services."""
 
 import logging
+import re
 from typing import Dict
 
 import requests
@@ -15,6 +16,70 @@ from zlsde.providers.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_label_from_response(text: str) -> str:
+    """Extract clean label from LLM response text.
+    
+    Removes prompt echo patterns and extracts only the label portion.
+    Handles cases where LLM repeats prompt text or adds extra content.
+    
+    Args:
+        text: Raw response text from LLM
+        
+    Returns:
+        Cleaned label text (1-3 words)
+    """
+    if not text:
+        return ""
+    
+    # Convert to lowercase for pattern matching but preserve original for extraction
+    text_lower = text.lower()
+    
+    # Split by common separators to get the label part (e.g., "Common category: label")
+    separators = [
+        "common category for these samples is:",
+        "the common category for these samples is:",
+        "common category:",
+        "category:",
+        "label:",
+        "answer:",
+        "response:",
+    ]
+    
+    for sep in separators:
+        if sep in text_lower:
+            # Find the separator in the original text (case-insensitive)
+            sep_idx = text_lower.find(sep)
+            # Take everything after the separator
+            text = text[sep_idx + len(sep):]
+            break
+    
+    # Remove markdown formatting (**, *, etc.)
+    text = re.sub(r'[*_`~]', '', text)
+    
+    # Take only the first line if multiple lines present
+    text = text.split('\n')[0]
+    
+    # Remove leading/trailing whitespace and newlines
+    text = text.strip()
+    
+    # Remove numbered list markers (e.g., "1.", "- ")
+    text = re.sub(r'^[\d]+[\.\)]\s*', '', text)
+    text = re.sub(r'^[-•]\s*', '', text)
+    
+    # Keep only alphanumeric, spaces, hyphens, and slashes (for things like "ai/ml")
+    text = re.sub(r'[^\w\s/-]', '', text)
+    
+    # Clean up extra whitespace
+    text = " ".join(text.split())
+    
+    # If label is too long (more than 3 words), take only first 3 words
+    words = text.split()
+    if len(words) > 3:
+        text = " ".join(words[:3])
+    
+    return text
 
 
 class GroqProvider(LLMProvider):
@@ -101,12 +166,15 @@ class GroqProvider(LLMProvider):
         """
         try:
             label_text = response_json["choices"][0]["message"]["content"]
+            
+            # Extract clean label from response (removes prompt echo)
+            label_text = _extract_label_from_response(label_text)
             label_text = label_text.strip().lower()
             
-            # Clean up label (remove extra whitespace, limit length)
+            # Final validation and cleanup
             label_text = " ".join(label_text.split())
             if len(label_text) > 50:
-                label_text = label_text[:50].rsplit(' ', 1)[0]  # Truncate at word boundary
+                label_text = label_text[:50].rsplit(' ', 1)[0]
             
             if not label_text:
                 raise InvalidResponseError("Empty label text in response")
@@ -237,12 +305,15 @@ class MistralProvider(LLMProvider):
         """
         try:
             label_text = response_json["choices"][0]["message"]["content"]
+            
+            # Extract clean label from response (removes prompt echo)
+            label_text = _extract_label_from_response(label_text)
             label_text = label_text.strip().lower()
             
-            # Clean up label (remove extra whitespace, limit length)
+            # Final validation and cleanup
             label_text = " ".join(label_text.split())
             if len(label_text) > 50:
-                label_text = label_text[:50].rsplit(' ', 1)[0]  # Truncate at word boundary
+                label_text = label_text[:50].rsplit(' ', 1)[0]
             
             if not label_text:
                 raise InvalidResponseError("Empty label text in response")
@@ -374,12 +445,15 @@ class OpenRouterProvider(LLMProvider):
         """
         try:
             label_text = response_json["choices"][0]["message"]["content"]
+            
+            # Extract clean label from response (removes prompt echo)
+            label_text = _extract_label_from_response(label_text)
             label_text = label_text.strip().lower()
             
-            # Clean up label (remove extra whitespace, limit length)
+            # Final validation and cleanup
             label_text = " ".join(label_text.split())
             if len(label_text) > 50:
-                label_text = label_text[:50].rsplit(' ', 1)[0]  # Truncate at word boundary
+                label_text = label_text[:50].rsplit(' ', 1)[0]
             
             if not label_text:
                 raise InvalidResponseError("Empty label text in response")

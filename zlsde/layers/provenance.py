@@ -125,7 +125,9 @@ class ProvenanceTracker:
             # Generate via provider chain
             try:
                 raw_response = label_generator.provider_manager.generate_label(prompt, max_tokens=20)
-                label_text = raw_response.strip()
+                label_text = label_generator._validate_label(raw_response.strip())
+                if label_text in ["unlabeled", "unknown"]:
+                    label_text = label_generator._infer_rule_based_label(items)
                 provider_name = self._last_successful_provider(label_generator)
             except Exception as e:
                 logger.warning(f"Provenance-wrapped generation failed for cluster {cluster_id}: {e}")

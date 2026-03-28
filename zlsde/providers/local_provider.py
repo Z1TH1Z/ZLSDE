@@ -89,12 +89,18 @@ class LocalProvider(LLMProvider):
             
             # Decode response
             label_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            
+            # Import the extraction helper (defined in api_providers module)
+            from zlsde.providers.api_providers import _extract_label_from_response
+            
+            # Extract clean label from response (removes prompt echo)
+            label_text = _extract_label_from_response(label_text)
             label_text = label_text.strip().lower()
             
-            # Clean up label (remove extra whitespace, limit length)
+            # Final validation and cleanup
             label_text = " ".join(label_text.split())
             if len(label_text) > 50:
-                label_text = label_text[:50].rsplit(' ', 1)[0]  # Truncate at word boundary
+                label_text = label_text[:50].rsplit(' ', 1)[0]
             
             if not label_text:
                 label_text = "unlabeled"
