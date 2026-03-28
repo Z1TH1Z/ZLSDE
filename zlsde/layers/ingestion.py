@@ -3,6 +3,7 @@
 import csv
 import json
 import uuid
+import hashlib
 import logging
 from pathlib import Path
 from typing import List, Iterator
@@ -29,13 +30,24 @@ class DataIngestionLayer:
     
     def __init__(self, config):
         """Initialize data ingestion layer with configuration.
-        
+
         Args:
             config: PipelineConfig with data source settings.
         """
         self.config = config
         self.batch_size = getattr(config, 'batch_size', 1000)
-    
+
+    def _compute_content_hash(self, content: str) -> str:
+        """Compute SHA-256 hash of content.
+
+        Args:
+            content: Text content to hash.
+
+        Returns:
+            Hexadecimal hash string.
+        """
+        return hashlib.sha256(str(content).encode('utf-8')).hexdigest()
+
     def load_data(self, sources: List[DataSource]) -> List[RawDataItem]:
         """Load data from configured sources.
         
@@ -124,6 +136,7 @@ class DataIngestionLayer:
                     content=content,
                     modality=modality,
                     source=source.path,
+                    content_hash=self._compute_content_hash(content),
                     metadata=metadata if metadata else None
                 )
                 items.append(item)
@@ -184,6 +197,7 @@ class DataIngestionLayer:
                 content=content,
                 modality=modality,
                 source=source.path,
+                content_hash=self._compute_content_hash(content),
                 metadata=metadata if metadata else None
             )
             items.append(item)
@@ -222,6 +236,7 @@ class DataIngestionLayer:
                     content=content,
                     modality=self.config.modality,
                     source=f"{source.path}:line{line_num}",
+                    content_hash=self._compute_content_hash(content),
                     metadata=source.metadata
                 )
                 items.append(item)
@@ -266,6 +281,7 @@ class DataIngestionLayer:
                     content=content,
                     modality=self.config.modality,
                     source=str(file_path),
+                    content_hash=self._compute_content_hash(content),
                     metadata=source.metadata
                 )
                 items.append(item)
@@ -333,8 +349,8 @@ class DataIngestionLayer:
         
         for item in items:
             try:
-                # Validate using built-in validation
-                item.validate()
+                # Validate using built-in validation (Pydantic v2 compatible)
+                type(item).model_validate(item.model_dump())
                 
                 # Additional encoding check for text
                 if item.modality == "text" and isinstance(item.content, str):
