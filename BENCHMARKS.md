@@ -26,6 +26,7 @@ The dataset CSV is committed to the repo at `examples/data/sample_text_multiclus
 ### Hardware
 
 - CPU: Intel Core i5 12th Gen
+- RAM: 16 GB
 - GPU: Nvidia RTX 3050 (pipeline ran on CPU — `device: cpu` in config; GPU not used for this run)
 - OS: Windows 11
 
