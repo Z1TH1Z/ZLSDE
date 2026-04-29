@@ -10,7 +10,7 @@
 
 ## Overview
 
-ZLSDE (Zero-Label Self-Discovering Dataset Engine) is a production-ready ML system that leverages large language models, unsupervised clustering, and iterative self-training to automatically generate labeled datasets from unlabeled data. The system achieves 79.3% quality scores and processes data at 1.96 samples per second, eliminating the need for manual annotation while maintaining consistent quality.
+ZLSDE (Zero-Label Self-Discovering Dataset Engine) is a production-ready ML system that leverages large language models, unsupervised clustering, and iterative self-training to automatically generate labeled datasets from unlabeled data. The system achieves 79.3% quality scores and processes data at 1.96 samples per second, eliminating the need for manual annotation while maintaining consistent quality (see [BENCHMARKS.md](BENCHMARKS.md)).
 
 ### Key Capabilities
 
@@ -76,19 +76,19 @@ Label Generation → Quality Control → Self-Training → Dataset Export
 ## Performance Metrics
 
 ### Quality & Accuracy
-- **Quality Score**: 79.3% average without human annotation
-- **Confidence Score**: 48.5% average across all labels
+- **Quality Score**: 79.3% average without human annotation (see [BENCHMARKS.md](BENCHMARKS.md))
+- **Confidence Score**: 48.5% average across all labels (see [BENCHMARKS.md](BENCHMARKS.md))
 - **Label Coverage**: 100% of input samples labeled
-- **Silhouette Score**: 0.074-0.087 for cluster quality
+- **Silhouette Score**: 0.074-0.087 for cluster quality (see [BENCHMARKS.md](BENCHMARKS.md))
 
 ### Speed & Throughput
-- **Processing Speed**: 1.96 samples per second
+- **Processing Speed**: 1.96 samples per second (see [BENCHMARKS.md](BENCHMARKS.md))
 - **API Response Time**: 3-5 seconds per label
 - **Pipeline Execution**: 10-18 seconds for 20 samples
 - **Setup Time**: Less than 1 minute (vs 10+ minutes for local models)
 
 ### Reliability
-- **Test Success Rate**: 100% (217/217 tests passing, 3 skipped)
+- **Test Success Rate**: 100% (218/222 tests passing, 4 skipped)
 - **API Success Rate**: 100% with fallback chain
 - **Uptime**: 100% with multi-provider redundancy
 
@@ -431,8 +431,8 @@ pytest --cov=zlsde --cov-report=xml --cov-report=term-missing tests/
 |-------|-------|-------------|
 | Unit | 209 | Layer logic, providers, config, utils, CLI |
 | Property | 8 | Hypothesis-based validation invariants |
-| Integration | 8 | Config loading, label generator integration, live API (skipped without keys) |
-| **Total** | **220** | **217 passed, 3 skipped** |
+| Integration | 5 | Config loading, label generator integration, live API (skipped without keys) |
+| **Total** | **222** | **218 passed, 4 skipped** |
 
 **Coverage: 63% overall** — key modules at a glance:
 
@@ -575,7 +575,7 @@ config = PipelineConfig(
 - Modern Python packaging via `pyproject.toml`
 - CI/CD pipeline with GitHub Actions and Codecov
 - Web-based Gradio interface
-- Comprehensive test suite: 220 tests across unit, integration, and property suites (63% coverage)
+- Comprehensive test suite: 222 tests across unit, integration, and property suites (63% coverage)
 
 ### Planned Features
 - Batch API request optimization
