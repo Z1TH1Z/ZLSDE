@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zlsde"
+version = "0.1.1"
+description = "Zero-Label Self-Discovering Dataset Engine"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "ZLSDE Team"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "sentence-transformers>=2.2.2",
+    "transformers>=4.35.2",
+    "torch>=2.1.1",
+    "huggingface-hub>=0.20.0",
+    "hdbscan==0.8.33",
+    "scikit-learn==1.3.2",
+    "umap-learn==0.5.5",
+    "numpy==1.24.4",
+    "pandas==2.1.4",
+    "pyarrow==14.0.1",
+    "pyyaml==6.0.1",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "pydantic>=2.0.0",
+    "gradio>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==7.4.3",
+    "hypothesis==6.92.1",
+    "pytest-cov==4.1.0",
+    "responses>=0.24.0",
+    "black==23.12.1",
+    "flake8==6.1.0",
+    "mypy==1.7.1",
+    "isort==5.13.2",
+    "types-PyYAML==6.0.12.12",
+]
+optional = [
+    "faiss-cpu>=1.7.4",
+    "datasets>=2.12.0",
+    "pillow>=10.1.0",
+]
+
+[project.scripts]
+zlsde = "zlsde.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["zlsde*"]
+exclude = ["tests*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "zlsde.providers.api_providers",
+    "zlsde.models.data_models",
+    "zlsde.layers.self_training",
+    "zlsde.layers.quality_control",
+    "zlsde.layers.provenance",
+    "zlsde.layers.ingestion",
+    "zlsde.layers.clustering",
+    "zlsde.layers.adaptive_training",
+    "zlsde.config.config_loader",
+    "zlsde.providers.local_provider",
+    "zlsde.layers.representation",
+    "zlsde.layers.embedding_fusion",
+    "zlsde.orchestrator",
+]
+ignore_errors = true

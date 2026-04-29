@@ -1,0 +1,46 @@
+# Config for multi-cluster sample dataset with forced KMeans
+
+data:
+  sources:
+    - type: csv
+      path: examples/data/sample_text_multicluster.csv
+  modality: text
+
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  device: cpu
+  batch_size: 16
+  use_dimensionality_reduction: false
+  n_components: 50
+
+clustering:
+  method: kmeans
+  min_cluster_size: 4
+  n_clusters: 8
+
+labeling:
+  provider_config:
+    provider_type: local
+    local_model: google/flan-t5-base
+    timeout: 30
+  use_llm: false
+  n_representatives: 5
+
+quality:
+  threshold: 0.7
+  anomaly_contamination: 0.1
+  duplicate_threshold: 0.95
+
+training:
+  max_iterations: 2
+  convergence_threshold: 0.02
+  confidence_threshold: 0.8
+
+output:
+  format: csv
+  path: ./output/dataset_multicluster_kmeans_8
+  include_embeddings: true
+
+system:
+  random_seed: 42
+  log_level: INFO

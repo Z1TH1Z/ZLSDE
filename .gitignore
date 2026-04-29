@@ -1,0 +1,95 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+.venv_backup_*/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+check_labels.py
+test_label_fix.py
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Data and outputs
+data/
+output/
+*.csv
+*.json
+*.parquet
+*.pkl
+*.h5
+
+# Models (large files)
+/models/
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+
+# Kiro specs
+.kiro/
+
+# Gradio
+.gradio/
+
+# OS
+Thumbs.db
+
+# Datasets & Models (stored centrally at ~/datasets and ~/models)
+datasets/
+models/
+data/raw/
+*.pkl
+*.joblib
+*.pt
+*.h5

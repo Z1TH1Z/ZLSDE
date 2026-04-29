@@ -1,0 +1,46 @@
+# Config for 520-sample multicluster validation run
+
+data:
+  sources:
+    - type: csv
+      path: examples/data/sample_text_multicluster_520.csv
+  modality: text
+
+embedding:
+  model: sentence-transformers/all-MiniLM-L6-v2
+  device: cpu
+  batch_size: 32
+  use_dimensionality_reduction: false
+  n_components: 50
+
+clustering:
+  method: auto
+  min_cluster_size: 4
+
+labeling:
+  provider_config:
+    provider_type: api
+    api_providers: [groq]
+    groq_model: llama-3.1-8b-instant
+    timeout: 30
+  use_llm: true
+  n_representatives: 5
+
+quality:
+  threshold: 0.7
+  anomaly_contamination: 0.1
+  duplicate_threshold: 0.95
+
+training:
+  max_iterations: 2
+  convergence_threshold: 0.02
+  confidence_threshold: 0.8
+
+output:
+  format: csv
+  path: ./output/validation_runs/multicluster_520
+  include_embeddings: true
+
+system:
+  random_seed: 42
+  log_level: INFO

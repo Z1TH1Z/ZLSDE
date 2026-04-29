@@ -1,0 +1,116 @@
+# ZLSDE Pipeline Configuration Example
+# This file demonstrates all available configuration options
+
+# Data sources - specify one or more data sources
+data:
+  sources:
+    - type: csv
+      path: examples/data/sample_text.csv
+    # - type: json
+    #   path: examples/data/sample_data.json
+    # - type: folder
+    #   path: examples/data/images/
+  
+  # Modality: "text", "image", or "multimodal"
+  modality: text
+
+# Embedding configuration
+embedding:
+  # Model for generating embeddings
+  # Text: sentence-transformers/all-MiniLM-L6-v2, sentence-transformers/all-mpnet-base-v2
+  # Image: facebook/dinov2-base, openai/clip-vit-base-patch32
+  model: sentence-transformers/all-MiniLM-L6-v2
+  
+  # Device: "cpu", "cuda", or "mps"
+  device: cpu
+  
+  # Batch size for embedding generation
+  batch_size: 32
+  
+  # Optional dimensionality reduction with UMAP
+  use_dimensionality_reduction: false
+  n_components: 50
+
+# Clustering configuration
+clustering:
+  # Method: "auto", "hdbscan", "kmeans", or "spectral"
+  method: auto
+  
+  # Minimum samples per cluster
+  min_cluster_size: 10
+
+# Label generation configuration
+labeling:
+  # Provider configuration - choose between local models or API services
+  provider_config:
+    # Provider type: "local" or "api"
+    provider_type: local
+    
+    # API providers (used when provider_type is "api")
+    # Providers are tried in order: groq, mistral, openrouter, then local as fallback
+    api_providers:
+      - groq
+      - mistral
+      - openrouter
+    
+    # Model configurations for each provider
+    groq_model: mixtral-8x7b-32768
+    mistral_model: mistral-small-latest
+    openrouter_model: mistralai/mixtral-8x7b-instruct
+    
+    # Local model (used when provider_type is "local" or as fallback for "api")
+    # Options: google/flan-t5-base, google/flan-t5-large, google/flan-t5-xl
+    local_model: google/flan-t5-base
+    
+    # API request timeout in seconds
+    timeout: 30
+  
+  # Enable/disable LLM labeling (if false, uses default cluster_N labels)
+  use_llm: true
+  
+  # Number of representative samples to show LLM
+  n_representatives: 5
+  
+  # Backward compatibility: llm_model is deprecated, use provider_config instead
+  # llm_model: google/flan-t5-base
+
+# Quality control configuration
+quality:
+  # Minimum quality score threshold [0.0, 1.0]
+  threshold: 0.7
+  
+  # Expected anomaly contamination rate [0.0, 1.0]
+  anomaly_contamination: 0.1
+  
+  # Cosine similarity threshold for duplicate detection [0.0, 1.0]
+  duplicate_threshold: 0.95
+
+# Self-training configuration
+training:
+  # Maximum number of refinement iterations
+  max_iterations: 3
+  
+  # Label flip rate threshold for convergence [0.0, 1.0]
+  convergence_threshold: 0.02
+  
+  # Confidence threshold for training samples [0.0, 1.0]
+  confidence_threshold: 0.8
+
+# Output configuration
+output:
+  # Format: "csv", "json", "parquet", or "huggingface"
+  format: csv
+  
+  # Output directory path
+  path: ./output/dataset
+  
+  # Include embeddings in export (increases file size)
+  include_embeddings: true
+
+# System configuration
+system:
+  # Random seed for reproducibility
+  random_seed: 42
+  
+  # Logging level: "DEBUG", "INFO", "WARNING", "ERROR"
+  log_level: INFO
