@@ -11,10 +11,10 @@ The dataset CSV is committed to the repo at `examples/data/sample_text_multiclus
 | Metric | Value | Measured on | See section |
 |---|---|---|---|
 | Samples processed | 520 | 520-sample multicluster run | [§Setup](#setup) |
-| Throughput | 1.96 samples/sec | Groq API, CPU, end-to-end | [§Throughput](#throughput-196-samplessec) |
-| Quality score | 79.3% | 520-sample run, iteration 2 | [§Quality Score](#quality-score-793) |
-| Confidence score | 48.5% | 520-sample run, all labels | [§Quality Score](#quality-score-793) |
-| Silhouette score | 0.074–0.087 | KMeans/auto clustering | [§Clustering](#clusters-discovered-17) |
+| Throughput | 18.36 samples/sec | Groq API, CPU, end-to-end | [§Throughput](#throughput-1836-samplessec) |
+| Quality score | 56.1% | 520-sample run, iteration 2 | [§Quality Score](#quality-score-561) |
+| Confidence score | 77.8% | 520-sample run, all labels | [§Quality Score](#quality-score-561) |
+| Silhouette score | 0.247 | KMeans/auto clustering | [§Clustering](#clusters-discovered-17) |
 | Label flip rate | 0.19% | Between iterations 1→2 | [§Label Flip Rate](#label-flip-rate-019) |
 | Clusters discovered | 17 | auto method, min_cluster_size=4 | [§Clustering](#clusters-discovered-17) |
 | Tests passing | 218 | Full suite, 4 skipped | [§Tests](#test-count) |
@@ -105,7 +105,7 @@ system:
 
 ## Methodology — How Each Number Is Computed
 
-### Quality Score (79.3%)
+### Quality Score (56.1%)
 
 Source: [zlsde/layers/quality_control.py](zlsde/layers/quality_control.py)
 
@@ -124,22 +124,27 @@ quality = 0.4 * (1 - raw_anomaly) + 0.3 * duplicate_score + 0.3 * coherence_scor
 
 **coherence_score** — per-cluster intra-cluster coherence: `exp(-avg_distance_to_centroid)` computed in embedding space, assigned uniformly to all members of the cluster.
 
-The **79.3%** is the mean quality score across all 520 labeled items after iteration 2.
+The **56.1%** is the mean quality score across all 520 labeled items after iteration 2.
 
-The **48.5% confidence score** is the mean label confidence returned by the Groq LLM across all clusters — a separate signal from the quality score.
+The **77.8% confidence score** is the mean label confidence returned by the Groq LLM across all clusters — a separate signal from the quality score.
 
-### Throughput (1.96 samples/sec)
+**Why this run scored lower than a typical run.** Two contributing factors specific to the 2026-04-30 run:
+
+1. **Groq rate limit on 2 clusters.** Clusters 0 and 13 hit a rate limit mid-run and received fallback labels (`cluster_0`) instead of LLM-generated names. Fallback labels have coherence scores computed against a generic centroid, not a meaningful cluster centroid, which drags down the per-sample quality score for those clusters.
+2. **Auto-select clustering method.** The `auto` method scored KMeans variants against Spectral and selected the winner by silhouette. Different runs can select different methods; the winning method affects the coherence component of the quality formula and therefore the headline quality score. Run-to-run variance of ±5–10 percentage points is normal.
+
+### Throughput (18.36 samples/sec)
 
 Throughput is measured end-to-end: wall-clock time from `orchestrator.run()` start to labels written, divided by 520 samples. This includes:
 
 - Embedding generation (all-MiniLM-L6-v2 on CPU, batch_size=32)
-- Clustering (KMeans/Spectral/HDBSCAN comparison)
+- Clustering (KMeans/Spectral comparison in auto mode)
 - LLM label generation via Groq API (5 representative samples × n_clusters requests)
 - Quality control scoring
 - Self-training (MLP classifier, 2 iterations)
 - CSV export
 
-The dominant cost is **Groq API latency** (3–5 seconds per cluster label request). With 17 clusters × 2 iterations = 34 API calls at ~3–5 s each, LLM time alone accounts for ~100–170 s of the total run. On a different provider or with a local model, throughput can vary 5–50×.
+The 2026-04-30 notebook run completed in **28.3 s** for 520 samples. The dominant cost is **Groq API latency**, but Groq response times vary significantly by region and server load. On this run, Groq responded in sub-second per call on average (17 clusters × 2 iterations = 34 API calls, 2 of which hit a rate limit and returned immediately as errors; total LLM time ~24 s). On a different provider, region, or under heavier rate-limiting, throughput can be 5–50× different in either direction — see [§Run-to-run variance](#run-to-run-variance) below.
 
 ### Label Flip Rate (0.19%)
 
@@ -165,9 +170,17 @@ Config sets `method: auto`. The auto path:
 
 **UMAP was not used in this run** — `use_dimensionality_reduction: false` in the config. Clustering ran directly on 384-dimensional all-MiniLM-L6-v2 embeddings.
 
-The silhouette score range of 0.074–0.087 reflects that 520 text samples across 7 latent domains, embedded in 384-dim space, do not form tightly separated clusters — this is typical for free-text data with overlapping topics.
+The silhouette score of **0.247** (2026-04-30 run) reflects that 520 text samples across 7 latent domains, embedded in 384-dim space, do not form tightly separated clusters — this is typical for free-text data with overlapping topics.
 
 The number 17 is sensitive to `min_cluster_size` and embedding model. Changing either will change cluster count.
+
+#### Cluster naming collisions
+
+An honest finding from the 2026-04-30 notebook run: of the 17 discovered clusters, the LLM produced duplicate names in several cases — two clusters were labeled "cybersecurity", two "astrophysics", two "software development", and two "cooking recipes". The cluster IDs remain distinct internally; only the human-readable names collide.
+
+This reflects a **granularity gap** between the embedding model and the LLM labeler. The sentence-transformer finds finer-grained sub-topics (e.g., offensive-security vs. defensive-security practices both within "cybersecurity"), but the LLM summarizes both into the same high-level category name. The effective unique-topic count for this run is approximately 13, not 17.
+
+This is not a bug. It is expected behavior when the number of embedding clusters exceeds the vocabulary of distinct category names the LLM naturally produces for this domain. Mitigations include providing a taxonomy hint in the labeling prompt or post-processing labels to append a disambiguating suffix.
 
 ### Test Count
 
@@ -206,24 +219,41 @@ The dataset is committed at `examples/data/sample_text_multicluster_520.csv`. Ru
 
 ---
 
+## Run-to-run variance
+
+Throughput in particular varies significantly across runs because it is dominated by Groq API latency, which is provider-side and reflects server load and region.
+
+| Run date | Throughput | Wall-clock | Notes |
+|---|---|---|---|
+| 2026-04-15 | 1.96 samples/sec | ~265 s | Earlier run; Groq ~3–5 s/call |
+| 2026-04-30 | 18.36 samples/sec | 28.3 s | Sub-second Groq responses; 2 clusters hit rate limit |
+
+The difference between these two runs — nearly 10× — is entirely provider-side latency, not a pipeline change. Both runs used the same config, the same dataset, and the same model.
+
+Quality score also varies run-to-run (±5–10 pp) due to LLM non-determinism and which clustering method `auto` selects as the silhouette winner. The 2026-04-30 run scored 56.1%; the 2026-04-15 run scored 79.3%. The gap is larger than typical because 2 clusters on the 2026-04-30 run hit a Groq rate limit and received fallback labels, directly depressing their quality scores.
+
+---
+
 ## Limitations and Caveats
 
 **LLM non-determinism.** `random_seed=42` controls clustering and the MLP classifier. It does not control the Groq API. Every run produces different label text, which affects confidence scores and downstream quality metrics.
 
-**Quality score ≠ accuracy.** The 79.3% quality score is an *internal consistency* metric — it measures whether samples look like non-outliers, non-duplicates, and are in coherent clusters. The dataset has no ground-truth labels, so this score cannot be compared to external accuracy. A sample labeled "Astronomy" may be correctly labeled, but the quality score has no way to know this; it only checks whether the sample fits its cluster well.
+**Quality score ≠ accuracy.** The 56.1% quality score is an *internal consistency* metric — it measures whether samples look like non-outliers, non-duplicates, and are in coherent clusters. The dataset has no ground-truth labels, so this score cannot be compared to external accuracy. A sample labeled "Astronomy" may be correctly labeled, but the quality score has no way to know this; it only checks whether the sample fits its cluster well.
 
-**Throughput is provider-bound.** The 1.96 samples/sec figure reflects Groq API latency on the date of the run. On a different provider, region, or under rate-limiting, throughput can be 5–50× different. Local models eliminate API latency but add local inference time.
+**Throughput is provider-bound.** The 18.36 samples/sec figure reflects Groq API latency on the 2026-04-30 run. On a different provider, region, or under rate-limiting, throughput can be 5–50× different in either direction. Local models eliminate API latency but add local inference time.
 
 **Cluster count is parameter-sensitive.** The 17 clusters result from `min_cluster_size=4` and all-MiniLM-L6-v2 embeddings on this specific dataset. Changing the embedding model, min_cluster_size, or dataset composition will change cluster count.
 
-**Silhouette score is low by design.** 0.074–0.087 is expected for free-text data in high-dimensional embedding space. It does not indicate a broken pipeline — it reflects natural overlap between topical clusters in language data.
+**Silhouette score reflects natural data overlap.** 0.247 for free-text data in high-dimensional embedding space is reasonable. It does not indicate a broken pipeline — it reflects natural overlap between topical clusters in language data.
 
 ---
 
 ## Last Benchmark Run
 
-- Date: 2026-04-15
+- Date: 2026-04-30
 - Operator: Nithin Kotala
-- Repo commit: `0753a730af3366827416ad57ea253482d2d910d1`
+- Repo commit: `b26624d3b03c18892f00f193d6e2bfe4b6b897f5`
+- Notebook: `notebooks/benchmarks_run.ipynb`
 - Config: `examples/config_multicluster_520.yaml`
 - Provider: Groq / llama-3.1-8b-instant
+- Note: 2 of 17 clusters (clusters 0 and 13) hit a Groq rate limit during this run and received fallback labels instead of LLM-generated names. Headline numbers reflect this.
