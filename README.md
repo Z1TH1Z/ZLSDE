@@ -10,7 +10,7 @@
 
 ## Overview
 
-ZLSDE (Zero-Label Self-Discovering Dataset Engine) is a production-ready ML system that leverages large language models, unsupervised clustering, and iterative self-training to automatically generate labeled datasets from unlabeled data. The system achieves 79.3% quality scores and processes data at 1.96 samples per second, eliminating the need for manual annotation while maintaining consistent quality (see [BENCHMARKS.md](BENCHMARKS.md)).
+ZLSDE (Zero-Label Self-Discovering Dataset Engine) is a production-ready ML system that leverages large language models, unsupervised clustering, and iterative self-training to automatically generate labeled datasets from unlabeled data. The system achieves 56.1% quality scores and processes data at 18.36 samples per second, eliminating the need for manual annotation while maintaining consistent quality (see [BENCHMARKS.md](BENCHMARKS.md)).
 
 ### Key Capabilities
 
@@ -76,15 +76,15 @@ Label Generation → Quality Control → Self-Training → Dataset Export
 ## Performance Metrics
 
 ### Quality & Accuracy
-- **Quality Score**: 79.3% average without human annotation (see [BENCHMARKS.md](BENCHMARKS.md))
-- **Confidence Score**: 48.5% average across all labels (see [BENCHMARKS.md](BENCHMARKS.md))
+- **Quality Score**: 56.1% average without human annotation (see [BENCHMARKS.md](BENCHMARKS.md))
+- **Confidence Score**: 77.8% average across all labels (see [BENCHMARKS.md](BENCHMARKS.md))
 - **Label Coverage**: 100% of input samples labeled
-- **Silhouette Score**: 0.074-0.087 for cluster quality (see [BENCHMARKS.md](BENCHMARKS.md))
+- **Silhouette Score**: 0.247 for cluster quality (see [BENCHMARKS.md](BENCHMARKS.md))
 
 ### Speed & Throughput
-- **Processing Speed**: 1.96 samples per second (see [BENCHMARKS.md](BENCHMARKS.md))
-- **API Response Time**: 3-5 seconds per label
-- **Pipeline Execution**: 10-18 seconds for 20 samples
+- **Processing Speed**: 18.36 samples per second (see [BENCHMARKS.md](BENCHMARKS.md))
+- **API Response Time**: varies by provider load — sub-second to 5+ seconds per label
+- **Pipeline Execution**: 28.3 seconds for 520 samples (2026-04-30 run)
 - **Setup Time**: Less than 1 minute (vs 10+ minutes for local models)
 
 ### Reliability
