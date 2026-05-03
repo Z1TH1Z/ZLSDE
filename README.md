@@ -1,3 +1,14 @@
+---
+title: ZLSDE
+emoji: 🚀
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: "6.0.0"
+app_file: app.py
+pinned: false
+---
+
 # ZLSDE - Zero-Label Self-Discovering Dataset Engine
 
 [![CI Pipeline](https://github.com/Z1TH1Z/ZLSDE/actions/workflows/ci.yml/badge.svg)](https://github.com/Z1TH1Z/ZLSDE/actions/workflows/ci.yml)
