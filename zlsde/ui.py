@@ -9,7 +9,7 @@ from pathlib import Path
 import gradio as gr
 import pandas as pd
 
-from zlsde.models.data_models import DataSource, PipelineConfig
+from zlsde.models.data_models import DataSource, PipelineConfig, ProviderConfig
 from zlsde.orchestrator import PipelineOrchestrator
 from zlsde.utils.seed_control import set_random_seed
 
@@ -25,6 +25,7 @@ def run_pipeline(
     clustering_method,
     min_cluster_size,
     use_llm,
+    provider_type,
     llm_model,
     max_iterations,
     output_format,
@@ -55,6 +56,10 @@ def run_pipeline(
             return f"❌ Error: Unsupported file type: {file_ext}", None, None, None
 
         # Create configuration
+        provider_cfg = ProviderConfig(
+            provider_type=provider_type,
+            api_providers=["groq", "mistral", "openrouter"],
+        )
         config = PipelineConfig(
             data_sources=[DataSource(type=source_type, path=file_path)],
             modality=modality,
@@ -63,6 +68,7 @@ def run_pipeline(
             min_cluster_size=int(min_cluster_size),
             llm_model=llm_model,
             use_llm=use_llm,
+            provider_config=provider_cfg,
             max_iterations=int(max_iterations),
             output_format=output_format,
             output_path=output_dir,
@@ -209,11 +215,18 @@ def create_ui():
                     )
 
                 # Label generation settings
-                with gr.Accordion("🏷️ Label Generation Settings", open=False):
+                with gr.Accordion("🏷️ Label Generation Settings", open=True):
                     use_llm = gr.Checkbox(
                         value=True,
                         label="Use LLM for Label Generation",
                         info="Generate semantic labels using AI (slower but better)",
+                    )
+
+                    provider_type = gr.Radio(
+                        choices=["api", "local"],
+                        value="api",
+                        label="Provider Type",
+                        info="API uses Groq/Mistral/OpenRouter (fast, requires keys). Local runs models on device (slow).",
                     )
 
                     llm_model = gr.Dropdown(
@@ -223,8 +236,8 @@ def create_ui():
                             "google/flan-t5-large",
                         ],
                         value="google/flan-t5-base",
-                        label="LLM Model",
-                        info="Language model for generating labels",
+                        label="Local LLM Model",
+                        info="Only used when Provider Type is set to 'local'",
                     )
 
                 # Training settings
@@ -290,6 +303,7 @@ def create_ui():
                 clustering_method,
                 min_cluster_size,
                 use_llm,
+                provider_type,
                 llm_model,
                 max_iterations,
                 output_format,
