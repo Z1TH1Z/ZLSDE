@@ -1,5 +1,10 @@
 """Hugging Face Spaces entry point for ZLSDE."""
 
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from zlsde.ui import create_ui
 
 demo = create_ui()
