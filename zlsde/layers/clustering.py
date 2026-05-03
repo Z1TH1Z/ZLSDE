@@ -1,7 +1,6 @@
 """Layer 3: Clustering Engine - Discover natural groupings in embedding space."""
 
 import logging
-import sys
 from typing import Optional
 
 import numpy as np
@@ -54,20 +53,13 @@ class ClusteringEngine:
         This avoids repeated import attempts and warning spam in iterative runs.
         """
         try:
-            import hdbscan  # noqa: F401
+            from sklearn.cluster import HDBSCAN  # noqa: F401
 
             self._hdbscan_available = True
             self._hdbscan_error = None
         except Exception as e:
             self._hdbscan_available = False
-            base_msg = str(e).strip() or type(e).__name__
-            if sys.version_info >= (3, 14):
-                self._hdbscan_error = (
-                    f"{base_msg}. Current Python is {sys.version.split()[0]} "
-                    "(HDBSCAN wheels may be unavailable for this version)."
-                )
-            else:
-                self._hdbscan_error = base_msg
+            self._hdbscan_error = str(e).strip() or type(e).__name__
 
     def cluster(self, embeddings: np.ndarray, method: str = "auto") -> ClusterResult:
         """Cluster embeddings and return assignments with metrics.
@@ -231,19 +223,18 @@ class ClusteringEngine:
             RuntimeError: If clustering fails.
         """
         try:
-            import hdbscan
+            from sklearn.cluster import HDBSCAN
         except ImportError:
             raise ImportError(
-                "hdbscan is required for HDBSCAN clustering. " "Install with: pip install hdbscan"
+                "scikit-learn>=1.3 is required for HDBSCAN clustering."
             )
 
         # Create HDBSCAN clusterer
-        clusterer = hdbscan.HDBSCAN(
+        clusterer = HDBSCAN(
             min_cluster_size=self.min_cluster_size,
             min_samples=max(1, self.min_cluster_size // 2),
             metric="euclidean",
             cluster_selection_method="eom",
-            prediction_data=True,
         )
 
         # Fit and predict
